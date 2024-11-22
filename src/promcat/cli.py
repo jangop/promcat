@@ -138,15 +138,15 @@ def collect_text_files(
 )
 @click.option(
     "--style",
-    type=click.Choice(["newline", "separator", "markdown", "xml"]),
-    default="separator",
+    type=click.Choice([style.value for style in HeaderStyle]),
+    default=HeaderStyle.XML.value,
     help="Header style to use",
 )
 @click.option(
-    "--footer/--no-footer", default=False, help="Include footers for file sections"
+    "--footer/--no-footer", default=True, help="Include footers for file sections"
 )
 @click.option(
-    "--line-numbers/--no-line-numbers", default=False, help="Add line numbers to output"
+    "--line-numbers/--no-line-numbers", default=True, help="Add line numbers to output"
 )
 @click.option(
     "--separator",
