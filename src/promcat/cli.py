@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional, Literal, Iterable
 from gitignore_parser import parse_gitignore
 from enum import Enum
+from loguru import logger
 
 
 class HeaderStyle(str, Enum):
@@ -79,7 +80,9 @@ def get_ignore_matcher(
 ) -> Optional[callable]:
     """Create an ignore matcher function if the ignore file exists."""
     ignore_path = root_dir / ignore_file
+    logger.debug(f"Checking for ignore file at `{ignore_path}`")
     if ignore_path.exists():
+        logger.debug(f"Parsing ignore file at `{ignore_path}`")
         return parse_gitignore(ignore_path)
     return None
 
@@ -91,21 +94,34 @@ def collect_text_files(
     text_files = []
 
     for path in root_dir.rglob("*"):
+        logger.debug(f"Checking `{path}`")
         if not path.is_file():
+            logger.debug("Skipping non-file")
             continue
 
-        if any(
-            ignore_matcher and ignore_matcher(str(path))
-            for ignore_matcher in ignore_matchers
-        ):
+        ignored = False
+        for ignore_matcher in ignore_matchers:
+            if not ignore_matcher:
+                continue
+            result = ignore_matcher(str(path.relative_to(root_dir)))
+            logger.debug(f"Ignoring file: {result}")
+            if result:
+                logger.debug(
+                    f"Skipping ignored file. Relative path: `{path.relative_to(root_dir)}`"
+                )
+                ignored = True
+                break
+        if ignored:
             continue
 
         # Hard-reject .git and .venv directories
         relative_path = path.relative_to(root_dir)
         if str(relative_path).startswith((".git", ".venv", "target")):
+            logger.warning("Skipping ignored directory")
             continue
 
         if is_text_file(path):
+            logger.debug("Adding text file")
             text_files.append(path)
 
     return text_files
