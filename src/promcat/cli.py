@@ -1,7 +1,7 @@
 import click
 from pathlib import Path
 from typing import Optional, Literal, Iterable
-from gitignore_parser import parse_gitignore
+import pathspec
 from enum import Enum
 from loguru import logger
 
@@ -75,54 +75,36 @@ def is_text_file(filepath: Path) -> bool:
         return False
 
 
-def get_ignore_matcher(
-    root_dir: Path, ignore_file: Literal[".gitignore", ".promcatignore"] = ".gitignore"
-) -> Optional[callable]:
-    """Create an ignore matcher function if the ignore file exists."""
-    ignore_path = root_dir / ignore_file
-    logger.debug(f"Checking for ignore file at `{ignore_path}`")
-    if ignore_path.exists():
-        logger.debug(f"Parsing ignore file at `{ignore_path}`")
-        return parse_gitignore(ignore_path)
-    return None
+def get_path_specification(
+    root_dir: Path,
+    ignore_files: Iterable[Literal[".gitignore", ".promcatignore"]],
+) -> pathspec.PathSpec:
+    ignore_file_paths = [root_dir / ignore_file for ignore_file in ignore_files]
+    ignore_file_contents = [path.read_text().splitlines() for path in ignore_file_paths]
+    ignore_files_lines = [line for lines in ignore_file_contents for line in lines]
+
+    logger.debug(f"Path specification:\n{ignore_files_lines}")
+
+    return pathspec.PathSpec.from_lines("gitwildmatch", ignore_files_lines)
 
 
 def collect_text_files(
-    root_dir: Path, ignore_matchers: Iterable[callable] = []
+    root_dir: Path, path_specification: pathspec.PathSpec
 ) -> list[Path]:
     """Recursively collect all text files in directory."""
     text_files = []
 
     for path in root_dir.rglob("*"):
-        logger.debug(f"Checking `{path}`")
         if not path.is_file():
-            logger.debug("Skipping non-file")
             continue
 
-        ignored = False
-        for ignore_matcher in ignore_matchers:
-            if not ignore_matcher:
-                continue
-            result = ignore_matcher(str(path.relative_to(root_dir)))
-            logger.debug(f"Ignoring file: {result}")
-            if result:
-                logger.debug(
-                    f"Skipping ignored file. Relative path: `{path.relative_to(root_dir)}`"
-                )
-                ignored = True
-                break
-        if ignored:
+        if path_specification.match_file(path):
             continue
 
-        # Hard-reject .git and .venv directories
-        relative_path = path.relative_to(root_dir)
-        if str(relative_path).startswith((".git", ".venv", "target")):
-            logger.warning("Skipping ignored directory")
+        if not is_text_file(path):
             continue
 
-        if is_text_file(path):
-            logger.debug("Adding text file")
-            text_files.append(path)
+        text_files.append(path)
 
     return text_files
 
@@ -181,13 +163,15 @@ def main(
     separator: str,
 ):
     """Concatenate all text files in a directory, optionally respecting .gitignore and .promcatignore"""
-    ignore_matchers = []
+    ignore_files = []
     if respect_gitignore:
-        ignore_matchers.append(get_ignore_matcher(directory, ".gitignore"))
+        ignore_files.append(".gitignore")
     if respect_promcatignore:
-        ignore_matchers.append(get_ignore_matcher(directory, ".promcatignore"))
+        ignore_files.append(".promcatignore")
 
-    text_files = collect_text_files(directory, ignore_matchers)
+    path_specification = get_path_specification(directory, ignore_files)
+
+    text_files = collect_text_files(directory, path_specification)
 
     result = []
     for file_path in text_files:
