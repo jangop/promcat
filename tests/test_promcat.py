@@ -56,6 +56,6 @@ def test_format_file_section():
 
     # Test with line numbers and custom separator
     section = format_file_section(
-        path, content, HeaderStyle.SEPARATOR, line_numbers=True, separator=">"
+        path, content, HeaderStyle.SEPARATOR, line_numbers=True, number_separator=">"
     )
     assert "1 > test content" in section

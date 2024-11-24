@@ -29,17 +29,30 @@ def add_line_numbers(content: str, separator: str = "|") -> str:
     return "\n".join(numbered_lines)
 
 
+def format_tree_section(tree: str, style: HeaderStyle) -> str:
+    """Format a tree section with the specified style."""
+    if style == HeaderStyle.NEWLINE:
+        return f"\n\n{tree}"
+    elif style == HeaderStyle.SEPARATOR:
+        return f"\n=== Directory Tree ===\n{tree}"
+    elif style == HeaderStyle.MARKDOWN:
+        return f"\n## Directory Tree\n{tree}"
+    elif style == HeaderStyle.XML:
+        return f"\n<directory_tree>\n{tree}\n</directory_tree>"
+    return tree
+
+
 def format_file_section(
     path: str,
     content: str,
     style: HeaderStyle,
     include_footer: bool = False,
     line_numbers: bool = False,
-    separator: str = "|",
+    number_separator: str = "|",
 ) -> str:
     """Format a file section with the specified style and options."""
     formatted_content = (
-        add_line_numbers(content, separator) if line_numbers else content
+        add_line_numbers(content, number_separator) if line_numbers else content
     )
 
     if style == HeaderStyle.NEWLINE:
@@ -120,6 +133,30 @@ def collect_text_files(
     return text_files
 
 
+def generate_tree(files: list[Path], root_dir: Path) -> str:
+    """Generate a tree representation of the files."""
+    tree = {}
+    for file in files:
+        parts = file.relative_to(root_dir).parts
+        current = tree
+        for part in parts[:-1]:
+            current = current.setdefault(part, {})
+        current.setdefault(parts[-1], {})
+
+    def build_tree(current: dict, prefix: str = "") -> str:
+        lines = []
+        entries = sorted(current.keys())
+        for i, key in enumerate(entries):
+            connector = "└── " if i == len(entries) - 1 else "├── "
+            lines.append(f"{prefix}{connector}{key}")
+            if isinstance(current[key], dict) and current[key]:
+                extension = "    " if i == len(entries) - 1 else "│   "
+                lines.append(build_tree(current[key], prefix + extension))
+        return "\n".join(lines)
+
+    return build_tree(tree)
+
+
 @click.command()
 @click.argument(
     "directory", type=click.Path(exists=True, path_type=Path), default=Path.cwd()
@@ -162,6 +199,11 @@ def collect_text_files(
     default="|",
     help="Separator between line numbers and content (default: |)",
 )
+@click.option(
+    "--tree/--no-tree",
+    default=True,
+    help="Include directory tree in the output",
+)
 def main(
     directory: Path,
     output: Optional[Path],
@@ -172,6 +214,7 @@ def main(
     footer: bool,
     line_numbers: bool,
     separator: str,
+    tree: bool,
 ):
     """Concatenate all text files in a directory, optionally respecting .gitignore and .promcatignore"""
     ignore_files = []
@@ -200,13 +243,18 @@ def main(
                 HeaderStyle(style),
                 include_footer=footer,
                 line_numbers=line_numbers,
-                separator=separator,
+                number_separator=separator,
             )
 
             result.append(formatted_section)
 
         except Exception as e:
             click.echo(f"Error reading {file_path}: {e}", err=True)
+
+    if tree:
+        tree_representation = generate_tree(text_files, directory)
+        formatted_tree = format_tree_section(tree_representation, HeaderStyle(style))
+        result.append(formatted_tree)
 
     output_text = "".join(result)
 
