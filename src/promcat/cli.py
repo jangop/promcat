@@ -80,7 +80,9 @@ def get_path_specification(
     ignore_files: Iterable[Literal[".gitignore", ".promcatignore"]],
 ) -> pathspec.PathSpec:
     ignore_file_paths = [root_dir / ignore_file for ignore_file in ignore_files]
-    ignore_file_contents = [path.read_text().splitlines() for path in ignore_file_paths]
+    ignore_file_contents = [
+        path.read_text().splitlines() for path in ignore_file_paths if path.exists()
+    ]
     ignore_files_lines = [line for lines in ignore_file_contents for line in lines]
 
     logger.debug(f"Path specification:\n{ignore_files_lines}")
