@@ -1,7 +1,10 @@
 [project]
 name = "promcat"
 version = "0.1.0"
-description = "Concatenate all text files in a directory"
+description = "Concatenate all text files in a directory and its subdirectories"
+authors = [
+    { name="Jan Philip Göpfert", email="janphilip@gopfert.eu" }
+]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -9,6 +12,10 @@ dependencies = [
     "loguru>=0.7.2",
     "pathspec>=0.12.1",
 ]
+
+[project.urls]
+Repository = "https://github.com/jangop/promcat.git"
+Issues = "https://github.com/jangop/promcat/issues"
 
 [project.scripts]
 promcat = "promcat.cli:main"
