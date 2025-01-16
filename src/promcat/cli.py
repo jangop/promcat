@@ -122,7 +122,7 @@ def collect_text_files(
         if not path.is_file():
             continue
 
-        if path_specification.match_file(path):
+        if path_specification.match_file(str(path.relative_to(root_dir))):
             continue
 
         if not is_text_file(path):
