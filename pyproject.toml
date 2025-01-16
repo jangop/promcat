@@ -1,6 +1,6 @@
 [project]
 name = "promcat"
-version = "0.1.0"
+version = "0.1.1"
 description = "Concatenate all text files in a directory and its subdirectories"
 authors = [
     { name="Jan Philip Göpfert", email="janphilip@gopfert.eu" }
@@ -23,4 +23,9 @@ promcat = "promcat.cli:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
 
