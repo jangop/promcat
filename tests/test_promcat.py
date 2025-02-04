@@ -1,6 +1,6 @@
 from promcat.cli import (
     is_text_file,
-    collect_text_files,
+    collect_files,
     format_file_section,
     HeaderStyle,
     add_line_numbers,
@@ -29,8 +29,8 @@ def test_collect_text_files(tmp_path):
     # Create an empty path specification (no ignore patterns)
     path_spec = get_path_specification(tmp_path, [])
 
-    files = collect_text_files(tmp_path, path_spec)
-    files = [str(f.relative_to(tmp_path)) for f in files]
+    file_collection = collect_files(tmp_path, path_spec)
+    files = [str(f.relative_to(tmp_path)) for f in file_collection.all_files]
     assert len(files) == 2
     assert "dir1/test1.txt" in files
     assert "dir1/test2.txt" in files
@@ -40,8 +40,8 @@ def test_collect_text_files(tmp_path):
         "*.txt\n.gitignore"
     )  # Also ignore .gitignore itself
     path_spec = get_path_specification(tmp_path, [".gitignore"])
-    files = collect_text_files(tmp_path, path_spec)
-    files = [str(f.relative_to(tmp_path)) for f in files]
+    file_collection = collect_files(tmp_path, path_spec)
+    files = [str(f.relative_to(tmp_path)) for f in file_collection.all_files]
     assert len(files) == 0, (
         f"Found unexpected files: {files}"
     )  # All files should be ignored
@@ -100,8 +100,8 @@ def test_gitignore_patterns(tmp_path):
     path_spec = get_path_specification(root, [".gitignore"])
 
     # Collect files
-    files = collect_text_files(root, path_spec)
-    files = [str(f.relative_to(root)) for f in files]
+    file_collection = collect_files(root, path_spec)
+    files = [str(f.relative_to(root)) for f in file_collection.all_files]
 
     # /root-build should only exclude at root level
     assert "root-build/file.txt" not in files, (
@@ -144,8 +144,8 @@ build-anywhere
     path_spec = get_path_specification(root, [".gitignore"])
 
     # Collect files
-    files = collect_text_files(root, path_spec)
-    files = [str(f.relative_to(root)) for f in files]
+    file_collection = collect_files(root, path_spec)
+    files = [str(f.relative_to(root)) for f in file_collection.all_files]
 
     # Verify patterns work with comments and empty lines
     assert "root-build/file.txt" not in files, (

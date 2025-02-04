@@ -4,6 +4,7 @@ from typing import Optional, Literal, Iterable
 import pathspec
 from enum import Enum
 from loguru import logger
+import dataclasses
 
 
 class HeaderStyle(str, Enum):
@@ -112,10 +113,17 @@ def get_path_specification(
     return pathspec.PathSpec.from_lines("gitwildmatch", ignore_files_lines)
 
 
-def collect_text_files(
+@dataclasses.dataclass
+class FileCollection:
+    all_files: list[Path]
+    text_files: list[Path]
+
+
+def collect_files(
     root_dir: Path, path_specification: pathspec.PathSpec
-) -> list[Path]:
-    """Recursively collect all text files in directory."""
+) -> FileCollection:
+    """Recursively collect all (text) files in directory."""
+    all_files = []
     text_files = []
 
     for path in root_dir.rglob("*"):
@@ -125,12 +133,14 @@ def collect_text_files(
         if path_specification.match_file(str(path.relative_to(root_dir))):
             continue
 
+        all_files.append(path)
+
         if not is_text_file(path):
             continue
 
         text_files.append(path)
 
-    return text_files
+    return FileCollection(all_files=all_files, text_files=text_files)
 
 
 def generate_tree(files: list[Path], root_dir: Path) -> str:
@@ -225,10 +235,10 @@ def main(
 
     path_specification = get_path_specification(directory, ignore_files)
 
-    text_files = collect_text_files(directory, path_specification)
+    file_collection = collect_files(directory, path_specification)
 
     result = []
-    for file_path in text_files:
+    for file_path in file_collection.text_files:
         try:
             path_str = (
                 str(file_path.relative_to(directory)) if relative else str(file_path)
@@ -252,7 +262,7 @@ def main(
             click.echo(f"Error reading {file_path}: {e}", err=True)
 
     if tree:
-        tree_representation = generate_tree(text_files, directory)
+        tree_representation = generate_tree(file_collection.all_files, directory)
         formatted_tree = format_tree_section(tree_representation, HeaderStyle(style))
         result.append(formatted_tree)
 
