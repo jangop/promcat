@@ -91,22 +91,27 @@ def is_text_file(filepath: Path) -> bool:
 
 def get_path_specification(
     root_dir: Path,
-    ignore_files: Iterable[Literal[".gitignore", ".promcatignore"]],
-    allow_git: bool = False,
+    ignore_specification_files: Iterable[Literal[".gitignore", ".promcatignore"]],
+    ignore_defaults: bool = True,
 ) -> pathspec.PathSpec:
-    ignore_file_paths = [root_dir / ignore_file for ignore_file in ignore_files]
+    ignore_file_paths = [
+        root_dir / ignore_file for ignore_file in ignore_specification_files
+    ]
     ignore_file_contents = [
         path.read_text().splitlines() for path in ignore_file_paths if path.exists()
     ]
     ignore_files_lines = [line for lines in ignore_file_contents for line in lines]
 
-    if ".git" not in ignore_files_lines and (root_dir / ".git").exists():
-        logger.warning(
-            f"`.git` not in ignore files, but `.git` directory exists in `{root_dir}`"
-        )
-        if not allow_git:
-            logger.info("Ignoring `.git` directory")
-            ignore_files_lines.append(".git")
+    default_ignore_files = [".git", "uv.lock", "package-lock.json"]
+
+    for ignore_file in default_ignore_files:
+        if ignore_file not in ignore_files_lines and (root_dir / ignore_file).exists():
+            logger.warning(
+                f"`{ignore_file}` not in ignore files, but `{ignore_file}` file exists in `{root_dir}`"
+            )
+        if ignore_defaults:
+            logger.info(f"Ignoring `{ignore_file}` file")
+            ignore_files_lines.append(ignore_file)
 
     logger.debug(f"Path specification:\n{ignore_files_lines}")
 
