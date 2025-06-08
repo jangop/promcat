@@ -1,6 +1,6 @@
 [project]
 name = "promcat"
-version = "0.1.2"
+version = "0.1.3"
 description = "Concatenate all text files in a directory and its subdirectories"
 authors = [
     { name="Jan Philip Göpfert", email="janphilip@gopfert.eu" }
