@@ -132,7 +132,7 @@ def collect_files(
     all_files = []
     text_files = []
 
-    for path in root_dir.rglob("*"):
+    for path in sorted(root_dir.rglob("*")):
         if not path.is_file():
             continue
 
