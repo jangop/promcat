@@ -1,3 +1,5 @@
+import pytest
+
 from promcat.cli import (
     is_text_file,
     collect_files,
@@ -8,16 +10,26 @@ from promcat.cli import (
 )
 
 
-def test_is_text_file(tmp_path):
-    # Test text file
-    text_file = tmp_path / "test.txt"
-    text_file.write_text("Hello, world!")
-    assert is_text_file(text_file)
+@pytest.mark.parametrize(
+    "file_content, is_binary, expected_result",
+    [
+        ("This is a text file.", False, True),
+        (b"\x00\x01\x02\x03", True, False),
+        ("", False, True),
+    ],
+)
+def test_is_text_file(tmp_path, file_content, is_binary, expected_result):
+    file_path = tmp_path / "test_file"
+    if is_binary:
+        file_path.write_bytes(file_content)
+    else:
+        file_path.write_text(file_content)
+    assert is_text_file(file_path) == expected_result
 
-    # Test binary file
-    binary_file = tmp_path / "test.bin"
-    binary_file.write_bytes(b"\x00\x01\x02\x03")
-    assert not is_text_file(binary_file)
+
+def test_is_text_file_non_existent(tmp_path):
+    non_existent_file = tmp_path / "non_existent.txt"
+    assert is_text_file(non_existent_file) is False
 
 
 def test_collect_text_files(tmp_path):
@@ -47,24 +59,22 @@ def test_collect_text_files(tmp_path):
     )  # All files should be ignored
 
 
-def test_add_line_numbers():
-    content = "line1\nline2\nline3"
-
-    # Test default separator
-    numbered = add_line_numbers(content)
-    assert "1 | line1" in numbered
-    assert "3 | line3" in numbered
-
-    # Test custom separator
-    numbered = add_line_numbers(content, ">")
-    assert "1 > line1" in numbered
-    assert "3 > line3" in numbered
-
-    # Test padding
-    content = "line1\n" * 100
-    numbered = add_line_numbers(content)
-    assert "  1 | line1" in numbered
-    assert "100 | line1" in numbered
+@pytest.mark.parametrize(
+    "content, separator, expected",
+    [
+        ("Line 1\nLine 2\nLine 3", "|", "1 | Line 1\n2 | Line 2\n3 | Line 3"),
+        ("Single line", "|", "1 | Single line"),
+        ("", "|", ""),
+        ("Line A\nLine B", ">", "1 > Line A\n2 > Line B"),
+        (
+            "\n".join([f"Line {i}" for i in range(1, 101)]),
+            "|",
+            "\n".join([f"{str(i).rjust(3)} | Line {i}" for i in range(1, 101)]),
+        ),
+    ],
+)
+def test_add_line_numbers(content, separator, expected):
+    assert add_line_numbers(content, separator) == expected
 
 
 def test_format_file_section():
