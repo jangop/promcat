@@ -1,6 +1,6 @@
 import pytest
 
-from promcat.cli import (
+from promcat.core import (
     is_text_file,
     collect_files,
     format_file_section,
@@ -62,14 +62,18 @@ def test_collect_text_files(tmp_path):
 @pytest.mark.parametrize(
     "content, separator, expected",
     [
-        ("Line 1\nLine 2\nLine 3", "|", "1 | Line 1\n2 | Line 2\n3 | Line 3"),
-        ("Single line", "|", "1 | Single line"),
-        ("", "|", ""),
-        ("Line A\nLine B", ">", "1 > Line A\n2 > Line B"),
         (
-            "\n".join([f"Line {i}" for i in range(1, 101)]),
-            "|",
-            "\n".join([f"{str(i).rjust(3)} | Line {i}" for i in range(1, 101)]),
+            "First Line\nSecond Line\nThird Line",
+            " | ",
+            "1 | First Line\n2 | Second Line\n3 | Third Line",
+        ),
+        ("Just a single line", " | ", "1 | Just a single line"),
+        ("", " | ", ""),
+        ("Lorem\nipsum", " > ", "1 > Lorem\n2 > ipsum"),
+        (
+            "\n".join([f"Many-a-line {i}" for i in range(1, 101)]),
+            " | ",
+            "\n".join([f"{str(i).rjust(3)} | Many-a-line {i}" for i in range(1, 101)]),
         ),
     ],
 )
@@ -83,7 +87,7 @@ def test_format_file_section():
 
     # Test with line numbers and custom separator
     section = format_file_section(
-        path, content, HeaderStyle.SEPARATOR, line_numbers=True, number_separator=">"
+        path, content, HeaderStyle.SEPARATOR, line_numbers=True, number_separator=" > "
     )
     assert "1 > test content" in section
 
