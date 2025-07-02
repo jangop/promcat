@@ -1,10 +1,13 @@
-import click
-from pathlib import Path
-from typing import Optional, Literal, Iterable
-import pathspec
-from enum import Enum
-from loguru import logger
 import dataclasses
+from enum import Enum
+from pathlib import Path
+from typing import Iterable, Literal, Optional
+
+import click
+import pathspec
+from loguru import logger
+
+DEFAULT_IGNORE_FILES = [".git", "uv.lock", "package-lock.json"]
 
 
 class HeaderStyle(str, Enum):
@@ -102,9 +105,7 @@ def get_path_specification(
     ]
     ignore_files_lines = [line for lines in ignore_file_contents for line in lines]
 
-    default_ignore_files = [".git", "uv.lock", "package-lock.json"]
-
-    for ignore_file in default_ignore_files:
+    for ignore_file in DEFAULT_IGNORE_FILES:
         if ignore_file not in ignore_files_lines and (root_dir / ignore_file).exists():
             logger.warning(
                 f"`{ignore_file}` not in ignore files, but `{ignore_file}` file exists in `{root_dir}`"
