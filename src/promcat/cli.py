@@ -85,7 +85,7 @@ def is_text_file(filepath: Path) -> bool:
         with open(filepath, "rb") as f:
             sample = f.read(1024)
             return not bool(b"\x00" in sample)
-    except Exception:
+    except IOError:
         return False
 
 
@@ -263,7 +263,7 @@ def main(
 
             result.append(formatted_section)
 
-        except Exception as e:
+        except (IOError, UnicodeDecodeError) as e:
             click.echo(f"Error reading {file_path}: {e}", err=True)
 
     if tree:
